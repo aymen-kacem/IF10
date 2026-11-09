@@ -1,42 +1,18 @@
-import { Fragment, useEffect, useLayoutEffect, useRef } from "react";
-import type { TextareaHTMLAttributes } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
 import { Button, Icon, Mark, helpTexts } from "./App";
 import type { Draft, Message } from "./App";
 import "./Notebook.css";
 
-function GrowingTextarea({ value, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-  useLayoutEffect(() => {
-    const textarea = ref.current;
-    if (!textarea) return;
-    const grow = () => {
-      textarea.style.height = "auto";
-      textarea.style.height = `${Math.max(120, textarea.scrollHeight)}px`;
-    };
-    grow();
-    let width = textarea.getBoundingClientRect().width;
-    const observer = new ResizeObserver(() => {
-      const nextWidth = textarea.getBoundingClientRect().width;
-      if (width !== nextWidth) {
-        width = nextWidth;
-        grow();
-      }
-    });
-    observer.observe(textarea);
-    return () => observer.disconnect();
-  }, [value]);
-  return <textarea {...props} ref={ref} value={value} rows={3} className="chat-input" />;
-}
-
 function ChatAvatar({ student = false }: { student?: boolean }) {
   return (
-    <span
+    <div
       className={`chat-avatar ${student ? "student" : "assistant"}`}
-      role="img"
-      aria-label={student ? "Étudiant" : "ThinkFirst"}
+      aria-label={student ? "Logo Étudiant" : "Logo ThinkFirst"}
+      title={student ? "Étudiant" : "ThinkFirst"}
     >
-      {student ? <Icon name="user" size={21} /> : <Mark small />}
-    </span>
+      {student ? <Icon name="user" size={19} /> : <Mark small />}
+    </div>
   );
 }
 
@@ -44,323 +20,347 @@ export default function Notebook({
   draft,
   busy,
   error,
-  clarify,
   pending,
-  simulateError,
   onDraft,
-  onEditDraft,
-  onPrecisionDraft,
   onSend,
-  onEdit,
   onRespond,
   onRetry,
-  onClarify,
-  onCheck,
-  onSimulateError,
+  onGoToSummary,
 }: {
   draft: Draft;
   busy: boolean;
   error: boolean;
-  clarify: boolean;
   pending: Message | null;
-  simulateError: boolean;
   onDraft: (value: string) => void;
-  onEditDraft: (value: Draft["editDraft"]) => void;
-  onPrecisionDraft: (value: string) => void;
-  onSend: () => void;
-  onEdit: (index: number, text: string) => void;
+  onSend: (customText?: string) => void;
   onRespond: (message: Message) => void;
   onRetry: () => void;
-  onClarify: (value: boolean) => void;
-  onCheck: () => void;
-  onSimulateError: (value: boolean) => void;
+  onGoToSummary: () => void;
 }) {
-  const editing = draft.editDraft;
-  const first = !draft.turns.length;
-  const value = editing
-    ? editing.text
-    : clarify
-      ? draft.precisionDraft
-      : first
-        ? draft.attempt
-        : draft.nextAttempt;
-  const composer = useRef<HTMLDivElement>(null);
-  const status = useRef<HTMLDivElement>(null);
+  const [exerciseOpen, setExerciseOpen] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const value = draft.turns.length ? draft.nextAttempt : draft.attempt;
+
+  // Auto-scroll to bottom whenever messages or busy state changes
   useEffect(() => {
-    if (busy || error)
-      status.current?.scrollIntoView({
-        block: "nearest",
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-          ? "instant"
-          : "smooth",
-      });
-  }, [busy, error]);
-  function focusComposer() {
-    setTimeout(() => composer.current?.querySelector("textarea")?.focus(), 0);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [draft.turns, draft.openingMessages, busy, pending]);
+
+  // Auto resize textarea
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 180)}px`;
+  }, [value]);
+
+  function handleSend() {
+    if (busy || error || !value.trim()) return;
+    onSend();
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
   }
+
+  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }
+
   function requestHelp(kind: string) {
+    if (busy || error) return;
+    const studentText =
+      kind === "Pour commencer"
+        ? "J’ai besoin d’une première piste pour démarrer."
+        : kind === "Plus simple"
+          ? "Peux-tu m'expliquer plus simplement ?"
+          : kind === "Approfondir"
+            ? "Comment aller plus loin sur cette notion ?"
+            : `Peux-tu me donner ${kind.toLowerCase()} ?`;
+
     onRespond({
       kind,
-      text: helpTexts[kind],
-      studentText:
-        kind === "Pour commencer"
-          ? "J’ai besoin d’une première piste."
-          : kind === "Plus simple"
-            ? "Peux-tu expliquer plus simplement ?"
-            : kind,
+      text: helpTexts[kind] || "Regardons cela ensemble pas à pas.",
+      studentText,
     });
   }
-  function studentMessage(text: string, index?: number) {
-    return (
-      <article className="chat-row student" aria-label="Message de l’étudiant">
-        <div className="chat-message-content">
-          <div className="chat-bubble">
-            <p>{text}</p>
-          </div>
-          {index !== undefined && (
-            <button
-              className="chat-modify"
-              disabled={busy || error}
-              onClick={() => {
-                onEditDraft({ index, text });
-                focusComposer();
-              }}
-              aria-label={`Modifier mon message ${index + 1}`}
-            >
-              Modifier
-            </button>
-          )}
-        </div>
-        <ChatAvatar student />
-      </article>
-    );
-  }
-  function helpActions() {
-    return (
-      <div className="chat-message-actions">
-        <div className="chat-help-buttons" aria-label="Demander une aide">
-          {(["Un indice", "Un exemple", "Expliquer la notion"] as const).map((label, i) => (
-            <Button
-              key={label}
-              variant="secondary"
-              disabled={busy || error || !!editing}
-              onClick={() => requestHelp(label)}
-            >
-              <Icon name={i === 0 ? "bulb" : i === 1 ? "code" : "book"} size={18} />
-              {label}
-            </Button>
-          ))}
-        </div>
-        <div className="chat-further-actions">
-          <button disabled={busy || error || !!editing} onClick={() => requestHelp("Plus simple")}>
-            Plus simple
-          </button>
-          <button disabled={busy || error || !!editing} onClick={() => requestHelp("Approfondir")}>
-            Approfondir
-          </button>
-          <button
-            disabled={busy || error || !!editing}
-            onClick={() => {
-              onClarify(!clarify);
-              focusComposer();
-            }}
-          >
-            Préciser ma demande
-          </button>
-        </div>
-      </div>
-    );
-  }
-  function assistantMessage(message: Message, last: boolean, key: string) {
-    return (
-      <Fragment key={key}>
-        {message.kind !== "Retour sur ta tentative" &&
-          studentMessage(message.studentText || message.kind)}
-        <article className="chat-row assistant" aria-label="Message de ThinkFirst">
-          <ChatAvatar />
-          <div className="chat-message-content">
-            <div className="chat-bubble">
-              <p>{message.text}</p>
-            </div>
-            {last && helpActions()}
-          </div>
-        </article>
-      </Fragment>
-    );
-  }
-  const lastTurn = draft.turns.length - 1;
+
+  const hasMessages = draft.turns.length > 0 || draft.openingMessages.length > 0;
+
   return (
-    <section className="conversation-page" aria-label="Conversation pédagogique">
-      <details className="chat-exercise" open>
-        <summary>
-          <span>
-            <Icon name="book" size={20} />
-            Mon exercice
+    <section className="chat-interface" aria-label="Conversation avec ThinkFirst">
+      {/* Exercise context card at the top */}
+      <div className="chat-exercise-card">
+        <button
+          type="button"
+          className="chat-exercise-toggle"
+          onClick={() => setExerciseOpen(!exerciseOpen)}
+          aria-expanded={exerciseOpen}
+        >
+          <div className="chat-exercise-badge">
+            <Icon name="book" size={17} />
+            <span>Énoncé de l’exercice</span>
+            <span className="chat-exercise-subject">{draft.subject}</span>
+          </div>
+          <span className={`chat-exercise-chevron ${exerciseOpen ? "open" : ""}`}>
+            <Icon name="chevron" size={17} />
           </span>
-          <Icon name="chevron" size={18} />
-        </summary>
-        <p>{draft.exercise}</p>
-      </details>
-      <div
-        className="chat-thread"
-        role="log"
-        aria-label="Historique de la conversation"
-        aria-live="polite"
-        aria-relevant="additions text"
-      >
-        {!draft.turns.length && !draft.openingMessages.length && (
-          <article className="chat-row assistant" aria-label="Message de ThinkFirst">
-            <ChatAvatar />
-            <div className="chat-message-content">
-              <div className="chat-bubble">
-                <p>
-                  Quelle serait ta première idée ? Une tentative incomplète suffit pour commencer.
-                </p>
+        </button>
+        {exerciseOpen && (
+          <div className="chat-exercise-body">
+            <p>{draft.exercise}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Main chat messages container */}
+      <div className="chat-messages-container" role="log" aria-live="polite">
+        {/* Welcome message from ThinkFirst if chat is new */}
+        {!hasMessages && (
+          <div className="chat-turn assistant-turn">
+            <div className="chat-row assistant">
+              <ChatAvatar />
+              <div className="chat-bubble-wrapper">
+                <div className="chat-bubble assistant-bubble">
+                  <p>
+                    Bonjour ! Je suis ThinkFirst. Quelle est ta première idée pour aborder cet exercice ? Même une intuition incomplète suffit pour démarrer ensemble !
+                  </p>
+                </div>
+                {/* Pedagogical suggestion chips */}
+                <div className="chat-chips-row">
+                  <button
+                    type="button"
+                    className="chat-chip"
+                    onClick={() => requestHelp("Pour commencer")}
+                    disabled={busy}
+                  >
+                    <Icon name="bulb" size={15} />
+                    <span>Une première piste</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="chat-chip"
+                    onClick={() => requestHelp("Un exemple")}
+                    disabled={busy}
+                  >
+                    <Icon name="code" size={15} />
+                    <span>Voir un exemple</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="chat-chip"
+                    onClick={() => requestHelp("Expliquer la notion")}
+                    disabled={busy}
+                  >
+                    <Icon name="book" size={15} />
+                    <span>Expliquer la notion</span>
+                  </button>
+                </div>
               </div>
             </div>
-          </article>
+          </div>
         )}
-        {draft.openingMessages.map((message, i) =>
-          assistantMessage(
-            message,
-            first && i === draft.openingMessages.length - 1,
-            `opening-${i}`,
-          ),
-        )}
-        {draft.turns.map((turn, index) => (
-          <Fragment key={`turn-${index}`}>
-            {studentMessage(turn.text, index)}
-            {turn.messages.map((message, i) =>
-              assistantMessage(
-                message,
-                index === lastTurn && i === turn.messages.length - 1,
-                `message-${index}-${i}`,
-              ),
+
+        {/* Opening messages if any */}
+        {draft.openingMessages.map((msg, i) => (
+          <div key={`opening-${i}`} className="chat-turn assistant-turn">
+            {msg.studentText && (
+              <div className="chat-row student">
+                <div className="chat-bubble-wrapper">
+                  <div className="chat-bubble student-bubble">
+                    <p>{msg.studentText}</p>
+                  </div>
+                </div>
+                <ChatAvatar student />
+              </div>
             )}
-          </Fragment>
+            <div className="chat-row assistant">
+              <ChatAvatar />
+              <div className="chat-bubble-wrapper">
+                <div className="chat-bubble assistant-bubble">
+                  <p>{msg.text}</p>
+                </div>
+              </div>
+            </div>
+          </div>
         ))}
-      </div>
-      <div className="chat-status" ref={status} aria-live="polite">
+
+        {/* Conversational turns */}
+        {draft.turns.map((turn, tIdx) => {
+          const isLatestTurn = tIdx === draft.turns.length - 1;
+          return (
+            <div key={`turn-${tIdx}`} className="chat-turn">
+              {/* Student message on the RIGHT */}
+              <div className="chat-row student">
+                <div className="chat-bubble-wrapper">
+                  <div className="chat-bubble student-bubble">
+                    <p>{turn.text}</p>
+                  </div>
+                </div>
+                <ChatAvatar student />
+              </div>
+
+              {/* ThinkFirst responses on the LEFT */}
+              {turn.messages.map((msg, mIdx) => {
+                const isLatestMsg = isLatestTurn && mIdx === turn.messages.length - 1;
+                return (
+                  <div key={`msg-${tIdx}-${mIdx}`} className="assistant-message-group">
+                    {msg.studentText && msg.kind !== "Retour sur ta tentative" && (
+                      <div className="chat-row student sub-prompt">
+                        <div className="chat-bubble-wrapper">
+                          <div className="chat-bubble student-bubble">
+                            <p>{msg.studentText}</p>
+                          </div>
+                        </div>
+                        <ChatAvatar student />
+                      </div>
+                    )}
+                    <div className="chat-row assistant">
+                      <ChatAvatar />
+                      <div className="chat-bubble-wrapper">
+                        <div className="chat-bubble assistant-bubble">
+                          <p>{msg.text}</p>
+                        </div>
+
+                        {/* Pedagogical quick action pills for the latest response */}
+                        {isLatestMsg && !busy && (
+                          <div className="chat-chips-row">
+                            <button
+                              type="button"
+                              className="chat-chip"
+                              onClick={() => requestHelp("Un indice")}
+                            >
+                              <Icon name="bulb" size={15} />
+                              <span>Un indice</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="chat-chip"
+                              onClick={() => requestHelp("Un exemple")}
+                            >
+                              <Icon name="code" size={15} />
+                              <span>Un exemple</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="chat-chip"
+                              onClick={() => requestHelp("Expliquer la notion")}
+                            >
+                              <Icon name="book" size={15} />
+                              <span>Expliquer la notion</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="chat-chip sub-chip"
+                              onClick={() => requestHelp("Plus simple")}
+                            >
+                              <span>Plus simple</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="chat-chip sub-chip"
+                              onClick={() => requestHelp("Approfondir")}
+                            >
+                              <span>Approfondir</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+
+        {/* Typing indicator when ThinkFirst is replying */}
         {busy && (
-          <div className="chat-row assistant">
+          <div className="chat-row assistant chat-typing-row">
             <ChatAvatar />
-            <div className="chat-loading" role="status">
-              <span className="loading-dots">
-                <i />
-                <i />
-                <i />
-              </span>
-              Préparation de la réponse…
+            <div className="chat-bubble assistant-bubble typing-bubble">
+              <div className="typing-dots" aria-label="ThinkFirst est en train de réfléchir...">
+                <span />
+                <span />
+                <span />
+              </div>
+              <span className="typing-label">ThinkFirst réfléchit...</span>
             </div>
           </div>
         )}
+
+        {/* Error notification if any */}
         {error && (
-          <div className="error-message" role="alert">
-            <strong>La réponse n’a pas pu être préparée.</strong>
-            <p>Ton message est conservé. Tu peux réessayer.</p>
-            <Button variant="secondary" disabled={!pending} onClick={onRetry}>
-              <Icon name="refresh" size={18} />
-              Réessayer
+          <div className="chat-error-card" role="alert">
+            <p>Une petite pause technique est survenue. Ton message est conservé.</p>
+            <Button variant="secondary" onClick={onRetry}>
+              <Icon name="refresh" size={16} /> Réessayer
             </Button>
           </div>
         )}
-      </div>
-      <div className="chat-composer" ref={composer}>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (busy || error || !value.trim()) return;
-            if (editing) {
-              onEdit(editing.index, value.trim());
-              onEditDraft(null);
-            } else if (clarify) {
-              onRespond({
-                kind: "Reprenons ensemble",
-                studentText: value.trim(),
-                text: `Merci pour cette précision. La moyenne est la somme divisée par le nombre de valeurs. En Python, on peut utiliser sum(nombres) / len(nombres). Reprenons à partir de cette méthode.`,
-              });
-              onClarify(false);
-              onPrecisionDraft("");
-            } else onSend();
-            focusComposer();
-          }}
-        >
-          <label htmlFor="chat-response">
-            {editing
-              ? "Modifier ton message"
-              : clarify
-                ? "Que souhaites-tu préciser ?"
-                : "Ta réponse"}
-          </label>
-          <GrowingTextarea
-            id="chat-response"
-            required
-            value={value}
-            placeholder={
-              first ? "Je pense que je pourrais commencer par…" : "Écris ton idée ou ta question…"
-            }
-            onChange={(e) =>
-              editing
-                ? onEditDraft({ ...editing, text: e.target.value })
-                : clarify
-                  ? onPrecisionDraft(e.target.value)
-                  : onDraft(e.target.value)
-            }
-          />
-          <div className="chat-composer-actions">
-            {editing ? (
-              <Button type="button" variant="text" onClick={() => onEditDraft(null)}>
-                Annuler la modification
-              </Button>
-            ) : clarify ? (
-              <Button type="button" variant="text" onClick={() => onClarify(false)}>
-                Revenir à ma réponse
-              </Button>
-            ) : first ? (
-              <Button
-                type="button"
-                variant="text"
-                disabled={busy || error}
-                onClick={() => requestHelp("Pour commencer")}
-              >
-                <Icon name="bulb" size={18} />
-                Une première piste
-              </Button>
-            ) : (
-              <span />
-            )}
-            <Button type="submit" disabled={busy || error || !value.trim()}>
-              {editing ? "Valider la modification" : "Envoyer"}
-              <Icon name="send" size={18} />
+
+        {/* Card to advance to Bilan when the student has exchanged ideas */}
+        {draft.turns.length > 0 && !busy && (
+          <div className="chat-advance-card">
+            <div className="chat-advance-info">
+              <span className="chat-advance-badge">
+                <Icon name="check" size={15} /> Étape de réflexion accomplie
+              </span>
+              <h3>Prêt à faire le point sur ta compréhension ?</h3>
+              <p>Passe à l'étape du bilan pour synthétiser tes découvertes et valider ta démarche.</p>
+            </div>
+            <Button onClick={onGoToSummary} className="chat-advance-btn">
+              Passer au bilan <Icon name="arrow" size={17} />
             </Button>
           </div>
-        </form>
+        )}
+
+        <div ref={messagesEndRef} />
       </div>
-      {draft.turns.length > 0 && !editing && !busy && !error && (
-        <section className="chat-ready">
-          <div>
-            <h2>Prêt à essayer sans aide ?</h2>
-            <p>Mets ta démarche à l’épreuve avec un nouvel exemple.</p>
+
+      {/* ChatGPT-style bottom composer */}
+      <div className="chat-composer-section">
+        <form
+          className="chat-composer-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSend();
+          }}
+        >
+          <div className="chat-composer-box">
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={value}
+              onChange={(e) => onDraft(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                draft.turns.length === 0
+                  ? "Écris ta première intuition ou ta réponse... (Entrée pour envoyer)"
+                  : "Écris ta réflexion, ton calcul ou ta question... (Entrée pour envoyer)"
+              }
+              aria-label="Ton message ou réflexion"
+              disabled={busy}
+            />
+            <button
+              type="submit"
+              className={`chat-send-btn ${value.trim() && !busy ? "active" : ""}`}
+              disabled={!value.trim() || busy}
+              aria-label="Envoyer le message"
+              title="Envoyer (Entrée)"
+            >
+              <Icon name="send" size={17} />
+            </button>
           </div>
-          <Button variant="secondary" onClick={onCheck}>
-            Vérifier ma compréhension <Icon name="arrow" size={18} />
-          </Button>
-        </section>
-      )}
-      <details className="prototype-tools chat-tools">
-        <summary>Options du prototype</summary>
-        <label>
-          <input
-            type="checkbox"
-            checked={simulateError}
-            onChange={(e) => onSimulateError(e.target.checked)}
-          />
-          Simuler une erreur à la prochaine réponse
-        </label>
-        <p>
-          Les réponses sont simulées. Les séances sont enregistrées uniquement dans ce navigateur.
+        </form>
+        <p className="chat-composer-footnote">
+          ThinkFirst t’aide à construire ton propre raisonnement, étape par étape.
         </p>
-      </details>
+      </div>
     </section>
   );
 }

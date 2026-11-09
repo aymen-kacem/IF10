@@ -1,15 +1,17 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;550;600;650;700;750&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Inter:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 @layer base {
   body {
-    background: #fbfbf8;
-    color: #283b43;
-    font-family: "Inter", sans-serif;
+    background: #f7f9f6;
+    color: #17241e;
+    font-family: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
   button,
   a,
@@ -17,6 +19,7 @@
   textarea,
   summary {
     -webkit-tap-highlight-color: transparent;
+    font-family: inherit;
   }
   button,
   summary {
@@ -45,8 +48,10 @@
   }
   h1,
   h2,
-  h3 {
-    font-family: "Inter", sans-serif;
+  h3,
+  h4 {
+    font-family: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    letter-spacing: -0.025em;
   }
   h1:focus {
     outline: none;
@@ -83,82 +88,82 @@
   min-height: 100vh;
 }
 .header {
-  height: 88px;
-  background: #fff;
-  border-bottom: 1px solid #e9ebe5;
+  height: 80px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5ebe1;
+  position: sticky;
+  top: 0;
+  z-index: 40;
 }
 .header-inner {
-  max-width: 1328px;
-  padding: 0 44px;
+  max-width: 1200px;
+  padding: 0 32px;
   margin: auto;
   height: 100%;
   display: flex;
   align-items: center;
-  gap: 65px;
+  justify-content: space-between;
+  gap: 24px;
 }
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font:
-    750 24px "Inter",
-    sans-serif;
-  letter-spacing: -1px;
+  gap: 11px;
+  font-family: "Plus Jakarta Sans", "Inter", sans-serif;
+  font-weight: 750;
+  font-size: 23px;
+  letter-spacing: -0.8px;
   white-space: nowrap;
+  color: #1a3826;
+  text-decoration: none;
 }
 .brand-light {
   font-weight: 500;
+  color: #2e593d;
 }
 .brand-dot {
-  color: #718967;
+  color: #558763;
 }
 .brand-mark {
-  width: 37px;
-  height: 39px;
+  width: 36px;
+  height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #415b3f;
+  color: #275239;
 }
 .brand-mark svg {
   width: 100%;
   height: 100%;
 }
 .brand-mark.small {
-  width: 31px;
-  height: 31px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
 }
-.header nav {
-  display: flex;
-  gap: 30px;
-  height: 100%;
-  align-items: stretch;
-}
-.nav-link {
-  font-size: 16px;
-  color: #737a72;
-  position: relative;
-  white-space: nowrap;
-}
-.nav-link.active {
-  color: #2c4737;
-  font-weight: 600;
-}
-.nav-link.active:after {
-  content: "";
-  position: absolute;
-  bottom: 18px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: #496143;
-}
-.header-right {
-  margin-left: auto;
+.header-center {
   display: flex;
   align-items: center;
-  gap: 22px;
+}
+.header-tagline {
+  font-size: 14px;
+  color: #637768;
+  font-weight: 500;
+  background: #f1f6ef;
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid #e1ecde;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.new-session-btn {
+  font-size: 14.5px !important;
+  padding: 8px 16px !important;
+  min-height: 38px !important;
+  border-radius: 8px !important;
 }
 .student-label {
   font-size: 16px;
@@ -2274,80 +2279,107 @@
   letter-spacing: -0.8px;
   margin-top: 10px;
 }
-.progress-banner {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-  padding: 10px;
+/* Stepper: Same design and layout across every page */
+.stepper-banner {
+  background: #ffffff;
+  border: 1px solid #dce5d9;
+  border-radius: 16px;
+  padding: 10px 20px;
+  box-shadow: 0 2px 12px rgba(28, 48, 35, 0.04);
   margin-bottom: 32px;
-  border: 1px solid #dce3d3;
-  border-radius: 9px;
-  background: #fff;
 }
-.progress-item {
+.stepper-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.stepper-item-wrap {
+  display: flex;
+  align-items: center;
+  flex: 1;
   min-width: 0;
-  position: relative;
 }
-.progress-step {
-  width: 100%;
-  height: 70px;
+.stepper-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.stepper-step:hover {
+  background: #f2f7f1;
+}
+.stepper-step.active {
+  background: #eef6ee;
+  border-color: #d1e4d0;
+  box-shadow: 0 2px 8px rgba(36, 75, 52, 0.06);
+}
+.stepper-badge {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  padding: 8px;
-  border-radius: 5px;
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 1.45;
-  color: #596951;
+  font-size: 13.5px;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
 }
-.progress-step.active {
-  background: #edf3e5;
-  color: #2f4c32;
+.stepper-step.active .stepper-badge {
+  background: #254d36;
+  color: #ffffff;
+  box-shadow: 0 0 0 3px #dbeadd;
+}
+.stepper-step.completed .stepper-badge {
+  background: #e1efe3;
+  color: #214e35;
+  border: 1.5px solid #254d36;
+}
+.stepper-step.upcoming .stepper-badge {
+  background: #f0f4ef;
+  color: #7b8e7e;
+  border: 1px solid #d4ded3;
+}
+.stepper-label {
+  font-size: 15px;
   font-weight: 600;
-  box-shadow: inset 0 -2px #657f50;
+  transition: color 0.2s ease;
 }
-.progress-number {
-  width: 31px;
-  height: 31px;
-  display: grid;
-  place-items: center;
-  border: 1px solid #dce4d3;
-  border-radius: 50%;
-  color: #5a6d4e;
-  font-size: 16px;
-  flex-shrink: 0;
+.stepper-step.active .stepper-label {
+  color: #173824;
+  font-weight: 750;
 }
-.progress-step.active .progress-number {
-  background: #3f5a3c;
-  color: #fff;
-  border-color: #3f5a3c;
+.stepper-step.completed .stepper-label {
+  color: #244b36;
+  font-weight: 600;
 }
-.progress-step.completed .progress-number {
-  background: #edf3e5;
-  border-color: #b8cbaa;
-  color: #3d5e32;
+.stepper-step.upcoming .stepper-label {
+  color: #7b8e7e;
+  font-weight: 500;
 }
-.progress-check {
-  width: 16px;
-  flex-shrink: 0;
-  color: #4c703e;
+.stepper-connector {
+  flex: 1;
+  height: 2px;
+  background: #e2e8df;
+  margin: 0 10px;
+  min-width: 14px;
+  border-radius: 2px;
+  transition: background 0.25s ease;
 }
-.progress-separator {
-  position: absolute;
-  top: 50%;
-  right: -16px;
-  transform: translateY(-50%);
-  color: #809170;
+.stepper-connector.completed {
+  background: #254d36;
 }
-.storage-warning {
-  padding: 15px 18px;
-  border: 1px solid #e2cbb1;
-  border-radius: 6px;
-  color: #755134;
-  background: #fbf4eb;
-  margin-bottom: 22px;
+.storage-warning,
+.modal-overlay {
+  display: none !important;
 }
 .form-layout {
   display: block;
@@ -2681,24 +2713,29 @@
   .session-title-line .eyebrow {
     font-size: 16px;
   }
-  .progress-banner {
-    padding: 7px;
-    gap: 7px;
-    grid-template-columns: 1fr 1.5fr 0.85fr;
-    margin-bottom: 28px;
+  .stepper-banner {
+    padding: 8px 12px;
+    margin-bottom: 24px;
+    overflow-x: auto;
   }
-  .progress-step {
-    height: 130px;
-    padding: 9px 4px;
-    flex-direction: column;
-    justify-content: flex-start;
-    gap: 10px;
-    font-size: 16px;
-    text-align: center;
+  .stepper-inner {
+    gap: 6px;
   }
-  .progress-step > span:nth-child(2) {
-    overflow-wrap: normal;
-    hyphens: auto;
+  .stepper-step {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+  .stepper-badge {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+  .stepper-label {
+    font-size: 13.5px;
+  }
+  .stepper-connector {
+    margin: 0 6px;
+    min-width: 8px;
   }
   .progress-check {
     position: absolute;
