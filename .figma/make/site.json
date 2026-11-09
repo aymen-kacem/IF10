@@ -1,0 +1,10 @@
+{
+  "description": "ThinkFirst aide les étudiants du supérieur à résoudre des exercices grâce à des indices, exemples et explications adaptés, puis à vérifier leur compréhension.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
