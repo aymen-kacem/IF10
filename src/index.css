@@ -116,6 +116,37 @@
   white-space: nowrap;
   color: #1a3826;
   text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.header nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 20px;
+}
+.nav-link {
+  font-size: 15px;
+  font-weight: 550;
+  color: #556c5d;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 7px 16px;
+  border-radius: 9px;
+  transition: all 0.18s ease;
+  cursor: pointer;
+}
+.nav-link:hover {
+  color: #1a3826;
+  background: #f1f6ef;
+}
+.nav-link.active {
+  color: #1a3826;
+  background: #eaf3e8;
+  border-color: #d8e6d6;
+  font-weight: 650;
 }
 .brand-light {
   font-weight: 500;

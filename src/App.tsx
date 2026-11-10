@@ -132,7 +132,8 @@ export function Button({
   );
 }
 
-export type Page = "problem" | "work" | "summary";
+export type StepPage = "problem" | "work" | "summary";
+export type Page = "home" | StepPage;
 export type Message = { kind: string; text: string; studentText?: string };
 
 export type Draft = {
@@ -192,16 +193,16 @@ export function Stepper({
   currentStep,
   onStepClick,
 }: {
-  currentStep: Page;
-  onStepClick: (step: Page) => void;
+  currentStep: StepPage;
+  onStepClick: (step: StepPage) => void;
 }) {
-  const steps: { id: Page; number: string; label: string }[] = [
+  const steps: { id: StepPage; number: string; label: string }[] = [
     { id: "problem", number: "01", label: "Mon problème" },
     { id: "work", number: "02", label: "Raisonnement" },
     { id: "summary", number: "03", label: "Bilan" },
   ];
 
-  const order: Record<Page, number> = {
+  const order: Record<StepPage, number> = {
     problem: 0,
     work: 1,
     summary: 2,
@@ -246,7 +247,8 @@ export function Stepper({
 }
 
 export default function App() {
-  const [page, setPage] = useState<Page>("problem");
+  const [page, setPage] = useState<Page>("home");
+  const [activeSessionStep, setActiveSessionStep] = useState<StepPage>("problem");
   const [activeId, setActiveId] = useState(() => crypto.randomUUID());
   const [sessions, setSessions] = useState(() => loadSessions(initial).sessions);
   const [draft, setDraft] = useState<Draft>(() => initial);
@@ -283,6 +285,11 @@ export default function App() {
 
   const update = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
+
+  function goToSessionStep(step: StepPage) {
+    setActiveSessionStep(step);
+    setPage(step);
+  }
 
   function respond(message: Message) {
     if (busy) return;
@@ -341,28 +348,48 @@ export default function App() {
     setBusy(false);
     setError(false);
     setPending(null);
-    setPage("problem");
+    goToSessionStep("problem");
   }
 
-  const sessionTitle = draft.subject.toLowerCase().includes("python")
-    ? "Comprendre une moyenne en Python"
-    : `Séance de ${draft.subject}`;
+  const isSessionActive = page !== "home";
 
   return (
     <div className="app">
-      {/* Header with Brand and Clean Controls (No "Accueil", No "Mes séances") */}
+      {/* Header with Brand and Clean Navigation */}
       <header className="header">
         <div className="header-inner">
-          <div className="brand" aria-label="ThinkFirst">
+          <button
+            type="button"
+            className="brand brand-btn"
+            onClick={() => setPage("home")}
+            aria-label="ThinkFirst, retour à l'accueil"
+          >
             <Mark />
             <span>
               Think<span className="brand-light">First</span>
               <span className="brand-dot">.</span>
             </span>
-          </div>
-          <div className="header-center">
-            <span className="header-tagline">Accompagnement pédagogique interactif</span>
-          </div>
+          </button>
+
+          <nav aria-label="Navigation principale">
+            <button
+              type="button"
+              className={page === "home" ? "nav-link active" : "nav-link"}
+              aria-current={page === "home" ? "page" : undefined}
+              onClick={() => setPage("home")}
+            >
+              Accueil
+            </button>
+            <button
+              type="button"
+              className={isSessionActive ? "nav-link active" : "nav-link"}
+              aria-current={isSessionActive ? "page" : undefined}
+              onClick={() => goToSessionStep(activeSessionStep)}
+            >
+              Ma séance
+            </button>
+          </nav>
+
           <div className="header-right">
             <Button variant="secondary" onClick={newSession} className="new-session-btn">
               <Icon name="plus" size={16} />
@@ -375,218 +402,377 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Flow: Stepper is displayed identically across each step */}
-      <main className="session-main">
-        {/* Identical Stepper Component on Every Page */}
-        <Stepper currentStep={page} onStepClick={setPage} />
+      {/* PAGE 0: Accueil (Home) */}
+      {page === "home" && (
+        <main className="home-main">
+          <div className="welcome">
+            <span className="eyebrow">
+              <span className="tiny-line" />
+              PRENDRE LE TEMPS DE COMPRENDRE
+            </span>
+            <span className="quiet-label">
+              <Icon name="leaf" size={15} />À ton rythme, toujours.
+            </span>
+          </div>
 
-        {/* STEP 1: Mon problème */}
-        {page === "problem" && (
-          <section className="form-layout" aria-label="Étape 1 : Mon problème">
-            <div className="form-intro">
-              <span className="section-icon">
-                <Icon name="book" size={26} />
-              </span>
+          <section className="hero">
+            <div className="hero-content">
+              <div className="pill">
+                <span />
+                Un espace pour tes idées
+              </div>
               <h1 ref={titleRef} tabIndex={-1}>
-                Posons le point de départ.
+                Sur quoi souhaites-tu
+                <br /> <span>travailler ?</span>
               </h1>
               <p>
-                Partage ton exercice et ton objectif. ThinkFirst t'accompagne à construire ton
-                raisonnement pas à pas, sans donner la réponse toute faite.
+                Construis ton raisonnement avec des questions,
+                <br className="desktop-break" /> des indices et des explications adaptés.
               </p>
-              <div className="soft-note">
-                <Icon name="bulb" />
-                <p>
-                  Pas besoin d’un énoncé parfait.
-                  <br />
-                  L’important, c’est ta question et ton point de départ.
-                </p>
+              <Button onClick={() => goToSessionStep("problem")}>
+                Commencer une séance <Icon name="arrow" size={19} />
+              </Button>
+              <div className="hero-note">
+                <Icon name="check" size={15} />
+                Pas besoin d’avoir déjà la réponse.
               </div>
             </div>
 
-            <form
-              className="panel problem-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                setPage("work");
-              }}
+            <div
+              className="hero-art"
+              aria-label="De la première idée à la compréhension, un pas à la fois"
             >
-              <div className="field">
-                <label htmlFor="subject">Matière ou discipline</label>
-                <input
-                  id="subject"
-                  required
-                  value={draft.subject}
-                  onChange={(e) => update("subject", e.target.value)}
-                  placeholder="Ex : Programmation Python, Mathématiques..."
-                />
+              <div className="art-orbit orbit-one" />
+              <div className="art-orbit orbit-two" />
+              <svg
+                className="art-star star-one"
+                width="34"
+                height="34"
+                viewBox="0 0 34 34"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                aria-hidden="true"
+              >
+                <path d="M17 1v32M1 17h32M6 6l22 22M6 28 28 6" />
+              </svg>
+              <div className="thought-card thought-first">
+                <span className="thought-number">01</span>
+                <div>
+                  <span className="art-label">LE POINT DE DÉPART</span>
+                  <strong>« J’ai une première idée… »</strong>
+                  <div className="art-lines">
+                    <i />
+                    <i />
+                  </div>
+                </div>
+                <span className="thought-symbol">
+                  <Icon name="message" size={21} />
+                </span>
+              </div>
+              <div className="art-connector">
+                <svg viewBox="0 0 230 80" fill="none">
+                  <path
+                    d="M15 0v26q0 17 18 17h157q20 0 20 20v12m-5-6 5 6 5-6"
+                    stroke="#9cae98"
+                    strokeWidth="1.5"
+                    strokeDasharray="4 5"
+                  />
+                </svg>
+              </div>
+              <div className="thought-card thought-second">
+                <span className="thought-number">02</span>
+                <div>
+                  <span className="art-label">LE DÉCLIC</span>
+                  <strong>Comprendre, pas à pas.</strong>
+                  <div className="art-progress">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                </div>
+                <span className="thought-symbol sage">
+                  <Icon name="bulb" size={23} />
+                </span>
+              </div>
+              <div className="art-caption">
+                <span className="caption-line" />
+                Ton raisonnement fait le chemin.
+              </div>
+              <span className="art-dot dot-one" />
+              <span className="art-dot dot-two" />
+            </div>
+          </section>
+
+          <section className="approach">
+            <div className="approach-heading">
+              <span className="eyebrow">LA MÉTHODE THINKFIRST</span>
+              <h2>
+                Pas une réponse toute faite.
+                <br />
+                Un chemin pour comprendre.
+              </h2>
+              <p>Tu réfléchis. On t’accompagne.</p>
+            </div>
+            <div className="approach-items">
+              {[
+                {
+                  n: "01",
+                  icon: "message",
+                  title: "Pars de ce que tu sais",
+                  text: "Une intuition, une question ou un début de solution : tout commence là.",
+                },
+                {
+                  n: "02",
+                  icon: "bulb",
+                  title: "Avance avec la bonne aide",
+                  text: "Un indice, un exemple ou une explication. Tu choisis ce qui t’aide.",
+                },
+                {
+                  n: "03",
+                  icon: "leaf",
+                  title: "Fais le point, à ta façon",
+                  text: "Reformule avec tes mots pour voir ce qui est devenu plus clair.",
+                },
+              ].map((item) => (
+                <div className="approach-item" key={item.n}>
+                  <div className="approach-item-top">
+                    <span className="method-icon">
+                      <Icon name={item.icon as IconName} size={22} />
+                    </span>
+                    <span className="method-number">{item.n}</span>
+                  </div>
+                  <h3>{item.title}</h3>
+                  <p>{item.text}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <footer className="footer">
+            <span>
+              <Mark small />
+              Réfléchir d’abord. Comprendre durablement.
+            </span>
+            <span>Un accompagnement, pas un raccourci.</span>
+          </footer>
+        </main>
+      )}
+
+      {/* SESSION WORKFLOW: 01 Mon problème -> 02 Raisonnement -> 03 Bilan */}
+      {isSessionActive && (
+        <main className="session-main">
+          {/* Unified Stepper Component: exact same design on all 3 steps */}
+          <Stepper currentStep={page as StepPage} onStepClick={goToSessionStep} />
+
+          {/* STEP 1: Mon problème */}
+          {page === "problem" && (
+            <section className="form-layout" aria-label="Étape 1 : Mon problème">
+              <div className="form-intro">
+                <span className="section-icon">
+                  <Icon name="book" size={26} />
+                </span>
+                <h1 ref={titleRef} tabIndex={-1}>
+                  Posons le point de départ.
+                </h1>
+                <p>
+                  Partage ton exercice et ton objectif. ThinkFirst t'accompagne à construire ton
+                  raisonnement pas à pas, sans donner la réponse toute faite.
+                </p>
+                <div className="soft-note">
+                  <Icon name="bulb" />
+                  <p>
+                    Pas besoin d’un énoncé parfait.
+                    <br />
+                    L’important, c’est ta question et ton point de départ.
+                  </p>
+                </div>
               </div>
 
-              <div className="field">
-                <label htmlFor="exercise">Énoncé de l’exercice ou problème</label>
-                <p className="field-hint">
-                  Copie l’énoncé ou décris ce que tu cherches à accomplir avec tes mots.
+              <form
+                className="panel problem-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  goToSessionStep("work");
+                }}
+              >
+                <div className="field">
+                  <label htmlFor="subject">Matière ou discipline</label>
+                  <input
+                    id="subject"
+                    required
+                    value={draft.subject}
+                    onChange={(e) => update("subject", e.target.value)}
+                    placeholder="Ex : Programmation Python, Mathématiques..."
+                  />
+                </div>
+
+                <div className="field">
+                  <label htmlFor="exercise">Énoncé de l’exercice ou problème</label>
+                  <p className="field-hint">
+                    Copie l’énoncé ou décris ce que tu cherches à accomplir avec tes mots.
+                  </p>
+                  <textarea
+                    id="exercise"
+                    required
+                    rows={4}
+                    value={draft.exercise}
+                    onChange={(e) => update("exercise", e.target.value)}
+                    placeholder="Écris l'exercice ici..."
+                  />
+                </div>
+
+                <fieldset className="field">
+                  <legend>Objectif de la séance</legend>
+                  <div className="goal-options">
+                    {["Comprendre une notion", "Résoudre un exercice", "Approfondir un sujet"].map(
+                      (goal) => (
+                        <label
+                          className={`goal-option ${draft.goal === goal ? "selected" : ""}`}
+                          key={goal}
+                        >
+                          <input
+                            type="radio"
+                            name="goal"
+                            value={goal}
+                            checked={draft.goal === goal}
+                            onChange={() => update("goal", goal)}
+                          />
+                          <span>{goal}</span>
+                        </label>
+                      ),
+                    )}
+                  </div>
+                </fieldset>
+
+                <div className="form-bottom">
+                  <span>Tu pourras revenir adapter ces éléments à tout moment.</span>
+                  <Button type="submit">
+                    Commencer à réfléchir <Icon name="arrow" size={17} />
+                  </Button>
+                </div>
+              </form>
+            </section>
+          )}
+
+          {/* STEP 2: Raisonnement (Dialogue interactif façon ChatGPT) */}
+          {page === "work" && (
+            <section className="work-layout" aria-label="Étape 2 : Raisonnement">
+              <Notebook
+                draft={draft}
+                busy={busy}
+                error={error}
+                pending={pending}
+                onDraft={(value) => update(draft.turns.length ? "nextAttempt" : "attempt", value)}
+                onSend={sendAttempt}
+                onRespond={respond}
+                onRetry={() => pending && respond(pending)}
+                onGoToSummary={() => goToSessionStep("summary")}
+              />
+            </section>
+          )}
+
+          {/* STEP 3: Bilan */}
+          {page === "summary" && (
+            <section className="summary-layout" aria-label="Étape 3 : Bilan">
+              <div className="summary-heading">
+                <span className="section-icon">
+                  <Icon name="leaf" size={28} />
+                </span>
+                <h1 ref={titleRef} tabIndex={-1}>
+                  Bilan de ta séance
+                </h1>
+                <p>Prends un moment pour ancrer ce que tu as appris et reformuler ta démarche.</p>
+              </div>
+
+              <div className="summary-cards">
+                <div className="summary-card">
+                  <Icon name="book" size={22} />
+                  <span className="mini-label">NOTION TRAVAILLÉE</span>
+                  <h3>{draft.subject}</h3>
+                  <p>Calcul et interprétation d’une moyenne</p>
+                </div>
+
+                <div className="summary-card">
+                  <Icon name="bulb" size={22} />
+                  <span className="mini-label">DÉCLIC CLÉ</span>
+                  <h3>Distinguer somme et moyenne</h3>
+                  <p>
+                    {draft.sent > 0
+                      ? "La moyenne s'obtient en divisant la somme totale par le nombre d’éléments."
+                      : "Une distinction essentielle à mémoriser pour ce type d'exercice."}
+                  </p>
+                </div>
+
+                <div className="summary-card">
+                  <Icon name="message" size={22} />
+                  <span className="mini-label">AIDES MOBILISÉES</span>
+                  <h3>
+                    {draft.helps.length
+                      ? draft.helps
+                          .map((h) =>
+                            h === "Un indice"
+                              ? "Indice"
+                              : h === "Un exemple"
+                                ? "Exemple"
+                                : h === "Expliquer la notion"
+                                  ? "Explication"
+                                  : h,
+                          )
+                          .join(", ")
+                      : "Raisonnement autonome"}
+                  </h3>
+                  <p>
+                    {draft.helps.length
+                      ? "Ressources consultées au fil des échanges."
+                      : "Tu as résolu cet exercice de façon entièrement autonome !"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="panel reflection-panel">
+                <label htmlFor="reflection">
+                  Comment expliquerais-tu la méthode avec tes propres mots ?
+                </label>
+                <p>
+                  Ce qui est plus clair, la formule ou la démarche à retenir… cet espace t'appartient.
                 </p>
                 <textarea
-                  id="exercise"
-                  required
+                  id="reflection"
                   rows={4}
-                  value={draft.exercise}
-                  onChange={(e) => update("exercise", e.target.value)}
-                  placeholder="Écris l'exercice ici..."
+                  value={draft.reflection}
+                  onChange={(e) => update("reflection", e.target.value)}
+                  placeholder="Pour calculer une moyenne, je commence par additionner toutes les valeurs, puis je divise ce total par le nombre d'éléments..."
                 />
+                <div className="reflection-note">
+                  <Icon name="leaf" size={17} />
+                  Une séance est une étape vers la maîtrise. Tu peux approfondir cette notion quand tu le souhaites.
+                </div>
               </div>
 
-              <fieldset className="field">
-                <legend>Objectif de la séance</legend>
-                <div className="goal-options">
-                  {["Comprendre une notion", "Résoudre un exercice", "Approfondir un sujet"].map(
-                    (goal) => (
-                      <label
-                        className={`goal-option ${draft.goal === goal ? "selected" : ""}`}
-                        key={goal}
-                      >
-                        <input
-                          type="radio"
-                          name="goal"
-                          value={goal}
-                          checked={draft.goal === goal}
-                          onChange={() => update("goal", goal)}
-                        />
-                        <span>{goal}</span>
-                      </label>
-                    ),
-                  )}
-                </div>
-              </fieldset>
-
-              <div className="form-bottom">
-                <span>Tu pourras revenir adapter ces éléments à tout moment.</span>
-                <Button type="submit">
-                  Commencer à réfléchir <Icon name="arrow" size={17} />
+              <div className="summary-actions">
+                <button
+                  type="button"
+                  className="text-link subdued"
+                  onClick={() => goToSessionStep("work")}
+                >
+                  <Icon name="back" size={16} />
+                  Revenir au raisonnement
+                </button>
+                <Button onClick={newSession}>
+                  <Icon name="plus" size={17} />
+                  Nouvelle séance
                 </Button>
               </div>
-            </form>
-          </section>
-        )}
+            </section>
+          )}
 
-        {/* STEP 2: Raisonnement (ChatGPT-style dialogue) */}
-        {page === "work" && (
-          <section className="work-layout" aria-label="Étape 2 : Raisonnement">
-            <Notebook
-              draft={draft}
-              busy={busy}
-              error={error}
-              pending={pending}
-              onDraft={(value) => update(draft.turns.length ? "nextAttempt" : "attempt", value)}
-              onSend={sendAttempt}
-              onRespond={respond}
-              onRetry={() => pending && respond(pending)}
-              onGoToSummary={() => setPage("summary")}
-            />
-          </section>
-        )}
-
-        {/* STEP 3: Bilan */}
-        {page === "summary" && (
-          <section className="summary-layout" aria-label="Étape 3 : Bilan">
-            <div className="summary-heading">
-              <span className="section-icon">
-                <Icon name="leaf" size={28} />
-              </span>
-              <h1 ref={titleRef} tabIndex={-1}>
-                Bilan de ta séance
-              </h1>
-              <p>Prends un moment pour ancrer ce que tu as appris et reformuler ta démarche.</p>
-            </div>
-
-            <div className="summary-cards">
-              <div className="summary-card">
-                <Icon name="book" size={22} />
-                <span className="mini-label">NOTION TRAVAILLÉE</span>
-                <h3>{draft.subject}</h3>
-                <p>Calcul et interprétation d’une moyenne</p>
-              </div>
-
-              <div className="summary-card">
-                <Icon name="bulb" size={22} />
-                <span className="mini-label">DÉCLIC CLÉ</span>
-                <h3>Distinguer somme et moyenne</h3>
-                <p>
-                  {draft.sent > 0
-                    ? "La moyenne s'obtient en divisant la somme totale par le nombre d’éléments."
-                    : "Une distinction essentielle à mémoriser pour ce type d'exercice."}
-                </p>
-              </div>
-
-              <div className="summary-card">
-                <Icon name="message" size={22} />
-                <span className="mini-label">AIDES MOBILISÉES</span>
-                <h3>
-                  {draft.helps.length
-                    ? draft.helps
-                        .map((h) =>
-                          h === "Un indice"
-                            ? "Indice"
-                            : h === "Un exemple"
-                              ? "Exemple"
-                              : h === "Expliquer la notion"
-                                ? "Explication"
-                                : h,
-                        )
-                        .join(", ")
-                    : "Raisonnement autonome"}
-                </h3>
-                <p>
-                  {draft.helps.length
-                    ? "Ressources consultées au fil des échanges."
-                    : "Tu as résolu cet exercice de façon entièrement autonome !"}
-                </p>
-              </div>
-            </div>
-
-            <div className="panel reflection-panel">
-              <label htmlFor="reflection">
-                Comment expliquerais-tu la méthode avec tes propres mots ?
-              </label>
-              <p>
-                Ce qui est plus clair, la formule ou la démarche à retenir… cet espace t'appartient.
-              </p>
-              <textarea
-                id="reflection"
-                rows={4}
-                value={draft.reflection}
-                onChange={(e) => update("reflection", e.target.value)}
-                placeholder="Pour calculer une moyenne, je commence par additionner toutes les valeurs, puis je divise ce total par le nombre d'éléments..."
-              />
-              <div className="reflection-note">
-                <Icon name="leaf" size={17} />
-                Une séance est une étape vers la maîtrise. Tu peux approfondir cette notion quand tu le souhaites.
-              </div>
-            </div>
-
-            <div className="summary-actions">
-              <button
-                type="button"
-                className="text-link subdued"
-                onClick={() => setPage("work")}
-              >
-                <Icon name="back" size={16} />
-                Revenir au raisonnement
-              </button>
-              <Button onClick={newSession}>
-                <Icon name="plus" size={17} />
-                Nouvelle séance
-              </Button>
-            </div>
-          </section>
-        )}
-
-        <div className="session-footnote">
-          <Icon name="leaf" size={15} />
-          Le bon rythme, c’est le tien.
-        </div>
-      </main>
+          <div className="session-footnote">
+            <Icon name="leaf" size={15} />
+            Le bon rythme, c’est le tien.
+          </div>
+        </main>
+      )}
     </div>
   );
 }
