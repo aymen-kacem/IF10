@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import Notebook from "./Notebook";
 import { loadSessions, storageKey } from "./sessionStorage";
+import type { SavedSession } from "./sessionStorage";
 
 export type IconName =
   | "arrow"
@@ -133,8 +134,22 @@ export function Button({
 }
 
 export type StepPage = "problem" | "work" | "summary";
-export type Page = "home" | StepPage;
+export type Page = "home" | "sessions" | StepPage;
 export type Message = { kind: string; text: string; studentText?: string };
+
+export type AlgorithmTemplate = {
+  id: string;
+  title: string;
+  subject: string;
+  category: string;
+  language: string;
+  exercise: string;
+  functionSignature: string;
+  testCases: string;
+  expectedComplexity: string;
+  solutionPattern: string;
+  initialCodeSnippet: string;
+};
 
 export type Draft = {
   subject: string;
@@ -152,14 +167,84 @@ export type Draft = {
   nextAttempt: string;
   editDraft: { index: number; text: string } | null;
   precisionDraft: string;
+  language?: string;
+  category?: string;
+  functionSignature?: string;
+  testCases?: string;
+  expectedComplexity?: string;
+  solutionPattern?: string;
+  finalCode?: string;
 };
 
-const initialExercise = "Écrire une fonction qui calcule la moyenne d’une liste non vide de nombres.";
+export const algorithmTemplates: AlgorithmTemplate[] = [
+  {
+    id: "moyenne",
+    title: "Calcul de moyenne",
+    subject: "Moyenne d'une liste",
+    category: "Boucles & Accumulateurs",
+    language: "Python",
+    exercise:
+      "Écrire une fonction qui calcule la moyenne arithmétique d’une liste non vide de nombres sans utiliser de bibliothèque externe.",
+    functionSignature: "def moyenne(nombres: list[float]) -> float:",
+    testCases: "moyenne([10, 20]) == 15.0 | moyenne([5, 15, 10]) == 10.0",
+    expectedComplexity: "Temps O(n) | Mémoire O(1)",
+    solutionPattern: "Accumulateur (Somme cumulée puis division par len)",
+    initialCodeSnippet:
+      "def moyenne(nombres: list[float]) -> float:\n    if not nombres:\n        raise ValueError('La liste ne doit pas être vide')\n    \n    total = 0.0\n    for x in nombres:\n        total += x\n        \n    return total / len(nombres)",
+  },
+  {
+    id: "max",
+    title: "Recherche du maximum",
+    subject: "Maximum d'une liste",
+    category: "Parcours & Conditions",
+    language: "Python",
+    exercise:
+      "Écrire une fonction qui retourne la valeur maximale contenue dans une liste non vide d'entiers en initialisant un candidat.",
+    functionSignature: "def trouver_max(valeurs: list[int]) -> int:",
+    testCases: "trouver_max([4, 12, 8, 3]) == 12 | trouver_max([-5, -2, -9]) == -2",
+    expectedComplexity: "Temps O(n) | Mémoire O(1)",
+    solutionPattern: "Candidat initialisé à valeurs[0] puis mise à jour conditionnelle",
+    initialCodeSnippet:
+      "def trouver_max(valeurs: list[int]) -> int:\n    if not valeurs:\n        raise ValueError('Liste vide')\n        \n    max_val = valeurs[0]\n    for x in valeurs[1:]:\n        if x > max_val:\n            max_val = x\n            \n    return max_val",
+  },
+  {
+    id: "palindrome",
+    title: "Vérifier un palindrome",
+    subject: "Test de palindrome",
+    category: "Chaînes de caractères",
+    language: "Python",
+    exercise:
+      "Écrire une fonction qui vérifie si une chaîne de caractères se lit de la même façon dans les deux sens (ex: 'radar', 'kayak').",
+    functionSignature: "def est_palindrome(mot: str) -> bool:",
+    testCases: "est_palindrome('radar') == True | est_palindrome('algo') == False",
+    expectedComplexity: "Temps O(n) | Mémoire O(1)",
+    solutionPattern: "Technique des deux pointeurs opposés (gauche et droite)",
+    initialCodeSnippet:
+      "def est_palindrome(mot: str) -> bool:\n    gauche = 0\n    droite = len(mot) - 1\n    \n    while gauche < droite:\n        if mot[gauche] != mot[droite]:\n            return False\n        gauche += 1\n        droite -= 1\n        \n    return True",
+  },
+  {
+    id: "dicho",
+    title: "Recherche dichotomique",
+    subject: "Recherche dichotomique",
+    category: "Recherche & Tris",
+    language: "Python",
+    exercise:
+      "Écrire un algorithme de recherche dichotomique dans une liste déjà triée pour trouver l'indice d'une valeur cible.",
+    functionSignature: "def recherche_dicho(liste: list[int], cible: int) -> int:",
+    testCases: "recherche_dicho([2, 5, 8, 12, 16], 12) == 3 | recherche_dicho([1, 3, 5], 4) == -1",
+    expectedComplexity: "Temps O(log n) | Mémoire O(1)",
+    solutionPattern: "Division de l'espace de recherche par deux à chaque itération",
+    initialCodeSnippet:
+      "def recherche_dicho(liste: list[int], cible: int) -> int:\n    gauche = 0\n    droite = len(liste) - 1\n    \n    while gauche <= droite:\n        milieu = (gauche + droite) // 2\n        if liste[milieu] == cible:\n            return milieu\n        elif liste[milieu] < cible:\n            gauche = milieu + 1\n        else:\n            droite = milieu - 1\n            \n    return -1",
+  },
+];
+
+const defaultTemplate = algorithmTemplates[0];
 
 const initial: Draft = {
-  subject: "Programmation Python",
-  exercise: initialExercise,
-  goal: "Résoudre un exercice",
+  subject: defaultTemplate.subject,
+  exercise: defaultTemplate.exercise,
+  goal: "Comprendre la logique algorithmique",
   attempt: "",
   answer: "",
   reflection: "",
@@ -172,21 +257,32 @@ const initial: Draft = {
   nextAttempt: "",
   editDraft: null,
   precisionDraft: "",
+  language: defaultTemplate.language,
+  category: defaultTemplate.category,
+  functionSignature: defaultTemplate.functionSignature,
+  testCases: defaultTemplate.testCases,
+  expectedComplexity: defaultTemplate.expectedComplexity,
+  solutionPattern: defaultTemplate.solutionPattern,
+  finalCode: defaultTemplate.initialCodeSnippet,
 };
 
 export const helpTexts: Record<string, string> = {
-  "Un indice":
-    "Tu connais la somme des valeurs. Quelle information sur la liste te permettrait de répartir cette somme de façon équitable entre tous les éléments ?",
-  "Un exemple":
-    "Prenons deux nombres simples : 10 et 20. Leur somme est 30. Comme il y a 2 nombres, la moyenne est 30 divisé par 2 = 15.",
-  "Expliquer la notion":
-    "La moyenne s’obtient en divisant la somme totale des valeurs par le nombre d’éléments (leur effectif). La formule est : Moyenne = Total / Nombre d'éléments.",
+  "Trace sur un exemple":
+    "Faisons tourner l'algorithme à la main (dry run) avec l'exemple d'entrée `[10, 20]` :\n\n- Au départ : `total = 0`, `compteur = 0`\n- Étape 1 : on lit 10 -> `total = 10`, `compteur = 1`\n- Étape 2 : on lit 20 -> `total = 30`, `compteur = 2`\n- Fin du parcours : la moyenne est `30 / 2 = 15.0`.\n\nQuelles variables d'état vas-tu initialiser dans ton code ?",
+  "Cas limites (edge cases)":
+    "En algorithmique, les cas limites (edge cases) sont cruciaux :\n\n1. Que doit renvoyer la fonction si la liste est vide `[]` ? (Risque de division par zéro `ZeroDivisionError`).\n2. Que se passe-t-il si la liste ne contient qu'un seul nombre ?\n3. L'algorithme fonctionne-t-il avec des valeurs négatives ou nulles ?\n\nComment formulerais-tu la condition de sécurité au début de la fonction ?",
+  "Idée en pseudo-code":
+    "Voici la structure en pseudo-code sans donner le code final :\n\n```python\nfonction moyenne(liste):\n    si liste est vide: lever une erreur\n    total = 0\n    pour chaque element dans liste:\n        total = total + element\n    retourner total / taille(liste)\n```\n\nComment traduis-tu cette boucle d'accumulation en Python ?",
+  "Décomposer l'étape":
+    "Décomposons le problème en 3 étapes distinctes :\n\n1. Initialisation : créer les variables d'accumulation avant la boucle (`total = 0`).\n2. Parcours itératif : mettre à jour le total à chaque élément.\n3. Calcul final : diviser le total par l'effectif (`len(nombres)`).\n\nQuelle première ligne de code souhaites-tu écrire ?",
+  "Analyser la complexité":
+    "Pour évaluer la complexité de cet algorithme :\n\n- **Complexité temporelle :** On parcourt les $n$ éléments une seule fois -> Temps `O(n)` (linéaire).\n- **Complexité spatiale (mémoire) :** On n'utilise que deux variables scalaires pour le cumul -> Espace `O(1)` (constant).\n\nC'est la complexité optimale car chaque élément doit être lu au moins une fois !",
   "Pour commencer":
-    "Commençons avec une étape à la fois : pour calculer la moyenne d'une liste de nombres, quelle est la toute première opération que tu ferais ?",
+    "Commençons par le point de départ : quelle est la première variable que tu dois créer pour accumuler les données au fur et à mesure ?",
   "Plus simple":
-    "Imagine que tu partages 30 euros à parts égales entre 2 personnes. Chacune reçoit 15 euros. La moyenne, c’est exactement cette part égale obtenue après division !",
+    "Imagine que tu dois calculer la moyenne de deux notes : 10 et 20. Tu fais d'abord la somme (30), puis tu divises par le nombre de notes (2). Ton algorithme doit faire exactement cela, mais pour n'importe quelle liste de valeurs !",
   "Approfondir":
-    "En Python, `sum(nombres)` calcule la somme totale et `len(nombres)` donne le nombre d’éléments. Quelle ligne de code simple permettrait de combiner ces deux fonctions ?",
+    "En Python moderne, on peut écrire cela de manière très concise : `sum(nombres) / len(nombres)`. Comment pourrais-tu ajouter une garde `if not nombres:` pour sécuriser la fonction contre les listes vides ?",
 };
 
 export function Stepper({
@@ -198,8 +294,8 @@ export function Stepper({
 }) {
   const steps: { id: StepPage; number: string; label: string }[] = [
     { id: "problem", number: "01", label: "Mon problème" },
-    { id: "work", number: "02", label: "Raisonnement" },
-    { id: "summary", number: "03", label: "Bilan" },
+    { id: "work", number: "02", label: "Raisonnement & Code" },
+    { id: "summary", number: "03", label: "Bilan & Complexité" },
   ];
 
   const order: Record<StepPage, number> = {
@@ -211,7 +307,7 @@ export function Stepper({
   const currentIdx = order[currentStep];
 
   return (
-    <nav className="stepper-banner" aria-label="Étapes de la séance">
+    <nav className="stepper-banner" aria-label="Étapes de la séance d'algorithmique">
       <div className="stepper-inner">
         {steps.map((step, idx) => {
           const isActive = idx === currentIdx;
@@ -249,20 +345,30 @@ export function Stepper({
 export default function App() {
   const [page, setPage] = useState<Page>("home");
   const [activeSessionStep, setActiveSessionStep] = useState<StepPage>("problem");
-  const [activeId, setActiveId] = useState(() => crypto.randomUUID());
-  const [sessions, setSessions] = useState(() => loadSessions(initial).sessions);
+  const [activeId, setActiveId] = useState<string>(() => crypto.randomUUID());
+  const [sessions, setSessions] = useState<SavedSession[]>(() => loadSessions(initial).sessions);
   const [draft, setDraft] = useState<Draft>(() => initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   const [pending, setPending] = useState<Message | null>(null);
 
+  // Filter state for "Mes séances" dashboard
+  const [sessionFilterStatus, setSessionFilterStatus] = useState<"all" | "active" | "completed">(
+    "all",
+  );
+  const [sessionFilterCategory, setSessionFilterCategory] = useState<string>("all");
+
   const titleRef = useRef<HTMLHeadingElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Silent session persistence (no popup, no warning alert)
+  // Silent session persistence in localStorage (no popup, no warning alert)
   useEffect(() => {
     try {
-      const entry = { id: activeId, updatedAt: new Date().toISOString(), data: draft };
+      const entry: SavedSession = {
+        id: activeId,
+        updatedAt: new Date().toISOString(),
+        data: draft,
+      };
       const updated = [entry, ...sessions.filter((s) => s.id !== activeId)];
       setSessions(updated);
       localStorage.setItem(storageKey, JSON.stringify({ activeId, sessions: updated }));
@@ -289,6 +395,21 @@ export default function App() {
   function goToSessionStep(step: StepPage) {
     setActiveSessionStep(step);
     setPage(step);
+  }
+
+  function applyTemplate(template: AlgorithmTemplate) {
+    setDraft((d) => ({
+      ...d,
+      subject: template.subject,
+      exercise: template.exercise,
+      language: template.language,
+      category: template.category,
+      functionSignature: template.functionSignature,
+      testCases: template.testCases,
+      expectedComplexity: template.expectedComplexity,
+      solutionPattern: template.solutionPattern,
+      finalCode: template.initialCodeSnippet,
+    }));
   }
 
   function respond(message: Message) {
@@ -318,7 +439,7 @@ export default function App() {
   function sendAttempt(customText?: string) {
     const text = (customText || (draft.turns.length ? draft.nextAttempt : draft.attempt)).trim();
     if (!text || busy || error) return;
-    const isImproved = /divis|\/|répart|nombre d|len\(/i.test(text);
+    const isImproved = /divis|\/|somme|for |while|len\(|range|total/i.test(text);
 
     setDraft((d) => ({
       ...d,
@@ -331,19 +452,28 @@ export default function App() {
     respond({
       kind: "Retour sur ta tentative",
       text: isImproved
-        ? "Ta démarche décrit bien le calcul d’une moyenne ! Tu as identifié le partage par le nombre d’éléments. Comment formulerais-tu cela clairement sous forme de code ou d'étape mathématique ?"
+        ? "Excellente intuition algorithmique ! Tu as identifié le besoin d'itérer et d'accumuler. Comment traduirais-tu cela sous forme d'une boucle Python avec une variable d'accumulation ?"
         : draft.sent > 0
-          ? "La somme permet d'obtenir le total. Pour calculer la moyenne, il faut maintenant diviser ce total par le nombre d’éléments. Comment pourrais-tu exprimer cette division ?"
-          : "Tu as identifié une première étape clé : additionner les valeurs. Quelle différence fais-tu entre une simple somme et une moyenne ?",
+          ? "La somme permet d'obtenir le total. Pour calculer la moyenne, il faut maintenant diviser ce total par le nombre d’éléments `len(nombres)`. Comment formules-tu cette étape dans ton code ?"
+          : "Tu as identifié une première étape clé : parcourir les données. Quelles variables d'état vas-tu créer avant d'entrer dans la boucle ?",
     });
   }
 
-  function newSession() {
+  function newSession(template?: AlgorithmTemplate) {
     if (timer.current) clearTimeout(timer.current);
+    const chosen = template || defaultTemplate;
     setActiveId(crypto.randomUUID());
     setDraft({
       ...initial,
-      exercise: initialExercise,
+      subject: chosen.subject,
+      exercise: chosen.exercise,
+      language: chosen.language,
+      category: chosen.category,
+      functionSignature: chosen.functionSignature,
+      testCases: chosen.testCases,
+      expectedComplexity: chosen.expectedComplexity,
+      solutionPattern: chosen.solutionPattern,
+      finalCode: chosen.initialCodeSnippet,
     });
     setBusy(false);
     setError(false);
@@ -351,7 +481,25 @@ export default function App() {
     goToSessionStep("problem");
   }
 
-  const isSessionActive = page !== "home";
+  function resumeSession(session: SavedSession) {
+    if (timer.current) clearTimeout(timer.current);
+    setActiveId(session.id);
+    setDraft({ ...initial, ...session.data });
+    setBusy(false);
+    setError(false);
+    setPending(null);
+    goToSessionStep(session.data.finished ? "summary" : session.data.turns.length ? "work" : "problem");
+  }
+
+  const isSessionActive = page === "problem" || page === "work" || page === "summary";
+
+  // Filtered sessions for dashboard
+  const filteredSessions = sessions.filter((s) => {
+    if (sessionFilterStatus === "completed" && !s.data.finished) return false;
+    if (sessionFilterStatus === "active" && s.data.finished) return false;
+    if (sessionFilterCategory !== "all" && s.data.category !== sessionFilterCategory) return false;
+    return true;
+  });
 
   return (
     <div className="app">
@@ -369,6 +517,7 @@ export default function App() {
               Think<span className="brand-light">First</span>
               <span className="brand-dot">.</span>
             </span>
+            <span className="header-badge-tag">Algorithmique</span>
           </button>
 
           <nav aria-label="Navigation principale">
@@ -382,18 +531,26 @@ export default function App() {
             </button>
             <button
               type="button"
+              className={page === "sessions" ? "nav-link active" : "nav-link"}
+              aria-current={page === "sessions" ? "page" : undefined}
+              onClick={() => setPage("sessions")}
+            >
+              Mes séances
+            </button>
+            <button
+              type="button"
               className={isSessionActive ? "nav-link active" : "nav-link"}
               aria-current={isSessionActive ? "page" : undefined}
               onClick={() => goToSessionStep(activeSessionStep)}
             >
-              Ma séance
+              Résoudre un problème
             </button>
           </nav>
 
           <div className="header-right">
-            <Button variant="secondary" onClick={newSession} className="new-session-btn">
+            <Button variant="secondary" onClick={() => newSession()} className="new-session-btn">
               <Icon name="plus" size={16} />
-              Nouvelle séance
+              Nouvel algorithme
             </Button>
             <span className="avatar" aria-label="Espace étudiant" title="Étudiant">
               É
@@ -402,16 +559,16 @@ export default function App() {
         </div>
       </header>
 
-      {/* PAGE 0: Accueil (Home) */}
+      {/* PAGE 1: Accueil (Home) */}
       {page === "home" && (
         <main className="home-main">
           <div className="welcome">
             <span className="eyebrow">
               <span className="tiny-line" />
-              PRENDRE LE TEMPS DE COMPRENDRE
+              DOMAINE INFORMATIQUE & ALGORITHMIQUE DE BASE
             </span>
             <span className="quiet-label">
-              <Icon name="leaf" size={15} />À ton rythme, toujours.
+              <Icon name="code" size={15} /> Penser comme un développeur, un problème à la fois.
             </span>
           </div>
 
@@ -419,28 +576,28 @@ export default function App() {
             <div className="hero-content">
               <div className="pill">
                 <span />
-                Un espace pour tes idées
+                Mentorat algorithmique socratique
               </div>
               <h1 ref={titleRef} tabIndex={-1}>
-                Sur quoi souhaites-tu
-                <br /> <span>travailler ?</span>
+                Sur quel algorithme
+                <br /> <span>souhaites-tu réfléchir ?</span>
               </h1>
               <p>
-                Construis ton raisonnement avec des questions,
-                <br className="desktop-break" /> des indices et des explications adaptés.
+                Construis ta logique pas à pas avec des traces d’exécution, des questions ciblées et
+                l'analyse des cas limites. Sans code prémâché.
               </p>
               <Button onClick={() => goToSessionStep("problem")}>
-                Commencer une séance <Icon name="arrow" size={19} />
+                Résoudre un problème algorithmique <Icon name="arrow" size={19} />
               </Button>
               <div className="hero-note">
                 <Icon name="check" size={15} />
-                Pas besoin d’avoir déjà la réponse.
+                Pas besoin d’avoir déjà la syntaxe parfaite.
               </div>
             </div>
 
             <div
               className="hero-art"
-              aria-label="De la première idée à la compréhension, un pas à la fois"
+              aria-label="De l'énoncé brut à la compréhension algorithmique"
             >
               <div className="art-orbit orbit-one" />
               <div className="art-orbit orbit-two" />
@@ -459,15 +616,15 @@ export default function App() {
               <div className="thought-card thought-first">
                 <span className="thought-number">01</span>
                 <div>
-                  <span className="art-label">LE POINT DE DÉPART</span>
-                  <strong>« J’ai une première idée… »</strong>
+                  <span className="art-label">L'INTUITION</span>
+                  <strong>« Quelles sont les entrées et sorties ? »</strong>
                   <div className="art-lines">
                     <i />
                     <i />
                   </div>
                 </div>
                 <span className="thought-symbol">
-                  <Icon name="message" size={21} />
+                  <Icon name="code" size={21} />
                 </span>
               </div>
               <div className="art-connector">
@@ -484,7 +641,7 @@ export default function App() {
                 <span className="thought-number">02</span>
                 <div>
                   <span className="art-label">LE DÉCLIC</span>
-                  <strong>Comprendre, pas à pas.</strong>
+                  <strong>Trace à la main & complexité O(n)</strong>
                   <div className="art-progress">
                     <span />
                     <span />
@@ -497,42 +654,78 @@ export default function App() {
               </div>
               <div className="art-caption">
                 <span className="caption-line" />
-                Ton raisonnement fait le chemin.
+                Ton raisonnement construit l'algorithme.
               </div>
               <span className="art-dot dot-one" />
               <span className="art-dot dot-two" />
             </div>
           </section>
 
+          {/* Quick Starter Classic Algorithms Section */}
+          <section className="starter-algorithms-section">
+            <div className="section-heading-clean">
+              <div>
+                <span className="eyebrow">EXERCICES CLASSIQUES</span>
+                <h2>Algorithmes fondamentaux prêts à explorer</h2>
+              </div>
+              <p>Choisis un patron classique pour t'entraîner immédiatement :</p>
+            </div>
+            <div className="starter-grid">
+              {algorithmTemplates.map((tmpl) => (
+                <div key={tmpl.id} className="starter-card">
+                  <div className="starter-card-header">
+                    <span className="starter-card-tag">{tmpl.category}</span>
+                    <span className="starter-card-lang">{tmpl.language}</span>
+                  </div>
+                  <h3>{tmpl.title}</h3>
+                  <p>{tmpl.exercise}</p>
+                  <div className="starter-card-footer">
+                    <code className="starter-complexity">{tmpl.expectedComplexity}</code>
+                    <button
+                      type="button"
+                      className="starter-btn"
+                      onClick={() => {
+                        newSession(tmpl);
+                      }}
+                    >
+                      Démarrer <Icon name="arrow" size={15} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Methodology */}
           <section className="approach">
             <div className="approach-heading">
-              <span className="eyebrow">LA MÉTHODE THINKFIRST</span>
+              <span className="eyebrow">MÉTHODOLOGIE ALGORITHMIQUE</span>
               <h2>
-                Pas une réponse toute faite.
+                Pas de code tout fait.
                 <br />
-                Un chemin pour comprendre.
+                Une démarche pour comprendre la logique.
               </h2>
-              <p>Tu réfléchis. On t’accompagne.</p>
+              <p>Tu réfléchis à la structure. On t’accompagne vers l'implémentation.</p>
             </div>
             <div className="approach-items">
               {[
                 {
                   n: "01",
-                  icon: "message",
-                  title: "Pars de ce que tu sais",
-                  text: "Une intuition, une question ou un début de solution : tout commence là.",
+                  icon: "code",
+                  title: "Identifier entrées, sorties & cas limites",
+                  text: "Quelles sont les données en entrée ? Quel est le type attendu ? Que faire si la liste est vide ?",
                 },
                 {
                   n: "02",
                   icon: "bulb",
-                  title: "Avance avec la bonne aide",
-                  text: "Un indice, un exemple ou une explication. Tu choisis ce qui t’aide.",
+                  title: "Faire une trace d'exécution à la main",
+                  text: "Dérouler l'algorithme sur un jeu de test simple pour vérifier chaque variable d'état pas à pas.",
                 },
                 {
                   n: "03",
                   icon: "leaf",
-                  title: "Fais le point, à ta façon",
-                  text: "Reformule avec tes mots pour voir ce qui est devenu plus clair.",
+                  title: "Traduire en code & évaluer la complexité",
+                  text: "Formaliser les boucles, sécuriser les invariants et vérifier la complexité en temps O(n) et mémoire.",
                 },
               ].map((item) => (
                 <div className="approach-item" key={item.n}>
@@ -552,81 +745,266 @@ export default function App() {
           <footer className="footer">
             <span>
               <Mark small />
-              Réfléchir d’abord. Comprendre durablement.
+              ThinkFirst. Raisonner d’abord. Coder durablement.
             </span>
-            <span>Un accompagnement, pas un raccourci.</span>
+            <span>Accompagnement méthodologique en informatique.</span>
           </footer>
         </main>
       )}
 
-      {/* SESSION WORKFLOW: 01 Mon problème -> 02 Raisonnement -> 03 Bilan */}
+      {/* PAGE 2: Dashboard "Mes séances" */}
+      {page === "sessions" && (
+        <main className="sessions-main">
+          <div className="page-heading">
+            <span className="eyebrow">HISTORIQUE & PROGRESSION</span>
+            <h1 ref={titleRef} tabIndex={-1}>
+              Mes séances d'algorithmique
+            </h1>
+            <p>
+              Retrouve tes réflexions passées, tes traces de code et tes bilans de complexité.
+            </p>
+          </div>
+
+          {/* Stats Bar */}
+          <div className="stats-grid">
+            <div className="stat-card">
+              <span className="stat-number">{sessions.length}</span>
+              <span className="stat-label">Algorithmes explorés</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-number">
+                {new Set(sessions.map((s) => s.data.category || "Boucles")).size}
+              </span>
+              <span className="stat-label">Notions fondamentales</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-number">
+                {sessions.filter((s) => s.data.finished).length}
+              </span>
+              <span className="stat-label">Bilans formalisés</span>
+            </div>
+          </div>
+
+          {/* Filters Bar */}
+          <div className="filter-bar">
+            <div className="filter-group">
+              <span className="filter-title">Statut :</span>
+              <button
+                type="button"
+                className={`filter-pill ${sessionFilterStatus === "all" ? "active" : ""}`}
+                onClick={() => setSessionFilterStatus("all")}
+              >
+                Tous
+              </button>
+              <button
+                type="button"
+                className={`filter-pill ${sessionFilterStatus === "active" ? "active" : ""}`}
+                onClick={() => setSessionFilterStatus("active")}
+              >
+                En cours
+              </button>
+              <button
+                type="button"
+                className={`filter-pill ${sessionFilterStatus === "completed" ? "active" : ""}`}
+                onClick={() => setSessionFilterStatus("completed")}
+              >
+                Terminés
+              </button>
+            </div>
+          </div>
+
+          {/* Sessions List */}
+          <div className="session-cards-grid">
+            {filteredSessions.map((session) => (
+              <div key={session.id} className="session-card-item">
+                <div className="session-card-top">
+                  <div className="session-card-tags">
+                    <span className="lang-tag">{session.data.language || "Python"}</span>
+                    {session.data.category && (
+                      <span className="cat-tag">{session.data.category}</span>
+                    )}
+                    <span className={`status-tag ${session.data.finished ? "complete" : ""}`}>
+                      <span />
+                      {session.data.finished ? "Validé" : "En cours"}
+                    </span>
+                  </div>
+                  <span className="session-card-date">
+                    <Icon name="clock" size={13} />
+                    {new Intl.DateTimeFormat("fr-FR", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }).format(new Date(session.updatedAt))}
+                  </span>
+                </div>
+                <h3>{session.data.subject}</h3>
+                <p className="session-card-desc">{session.data.exercise}</p>
+                {session.data.expectedComplexity && (
+                  <div className="session-card-complexity">
+                    <span>Complexité :</span>
+                    <code>{session.data.expectedComplexity}</code>
+                  </div>
+                )}
+                <div className="session-card-footer">
+                  <Button variant="secondary" onClick={() => resumeSession(session)}>
+                    {session.data.finished ? "Consulter le bilan" : "Reprendre la séance"}{" "}
+                    <Icon name="arrow" size={15} />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="sessions-tip">
+            <Icon name="code" size={24} />
+            <p>
+              Chaque algorithme résolu par toi-même ancre des réflexes de pensée essentiels pour tes
+              projets et tes examens.
+            </p>
+            <Button variant="secondary" onClick={() => newSession()}>
+              <Icon name="plus" size={16} /> Nouvel algorithme
+            </Button>
+          </div>
+        </main>
+      )}
+
+      {/* WORKFLOW: Step 1 (Mon problème) -> Step 2 (Raisonnement) -> Step 3 (Bilan) */}
       {isSessionActive && (
         <main className="session-main">
-          {/* Unified Stepper Component: exact same design on all 3 steps */}
+          {/* Identical Stepper Component on Every Step */}
           <Stepper currentStep={page as StepPage} onStepClick={goToSessionStep} />
 
-          {/* STEP 1: Mon problème */}
+          {/* STEP 1: Mon problème algorithmique */}
           {page === "problem" && (
             <section className="form-layout" aria-label="Étape 1 : Mon problème">
               <div className="form-intro">
                 <span className="section-icon">
-                  <Icon name="book" size={26} />
+                  <Icon name="code" size={26} />
                 </span>
                 <h1 ref={titleRef} tabIndex={-1}>
-                  Posons le point de départ.
+                  Posons le problème algorithmique.
                 </h1>
                 <p>
-                  Partage ton exercice et ton objectif. ThinkFirst t'accompagne à construire ton
-                  raisonnement pas à pas, sans donner la réponse toute faite.
+                  Choisis un langage, définis l'énoncé et la signature de fonction attendue.
+                  ThinkFirst t'accompagne ensuite dans le raisonnement pas à pas.
                 </p>
                 <div className="soft-note">
                   <Icon name="bulb" />
                   <p>
-                    Pas besoin d’un énoncé parfait.
-                    <br />
-                    L’important, c’est ta question et ton point de départ.
+                    Tu peux partir d’un problème type en un clic ou décrire ton propre énoncé.
                   </p>
                 </div>
               </div>
 
-              <form
-                className="panel problem-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  goToSessionStep("work");
-                }}
-              >
-                <div className="field">
-                  <label htmlFor="subject">Matière ou discipline</label>
-                  <input
-                    id="subject"
-                    required
-                    value={draft.subject}
-                    onChange={(e) => update("subject", e.target.value)}
-                    placeholder="Ex : Programmation Python, Mathématiques..."
-                  />
+              <div className="panel problem-form-wrapper">
+                {/* One-click template selector */}
+                <div className="template-quick-chooser">
+                  <span className="chooser-label">Ou choisis un patron classique :</span>
+                  <div className="template-buttons-row">
+                    {algorithmTemplates.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={`template-choice-btn ${draft.subject === t.subject ? "selected" : ""}`}
+                        onClick={() => applyTemplate(t)}
+                      >
+                        {t.title}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="field">
-                  <label htmlFor="exercise">Énoncé de l’exercice ou problème</label>
-                  <p className="field-hint">
-                    Copie l’énoncé ou décris ce que tu cherches à accomplir avec tes mots.
-                  </p>
-                  <textarea
-                    id="exercise"
-                    required
-                    rows={4}
-                    value={draft.exercise}
-                    onChange={(e) => update("exercise", e.target.value)}
-                    placeholder="Écris l'exercice ici..."
-                  />
-                </div>
+                <form
+                  className="problem-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    goToSessionStep("work");
+                  }}
+                >
+                  <div className="field-row-two">
+                    <div className="field">
+                      <label htmlFor="language">Langage cible</label>
+                      <select
+                        id="language"
+                        value={draft.language || "Python"}
+                        onChange={(e) => update("language", e.target.value)}
+                      >
+                        <option value="Python">Python</option>
+                        <option value="Pseudo-code">Pseudo-code</option>
+                        <option value="C">C</option>
+                        <option value="JavaScript">JavaScript</option>
+                      </select>
+                    </div>
 
-                <fieldset className="field">
-                  <legend>Objectif de la séance</legend>
-                  <div className="goal-options">
-                    {["Comprendre une notion", "Résoudre un exercice", "Approfondir un sujet"].map(
-                      (goal) => (
+                    <div className="field">
+                      <label htmlFor="category">Catégorie algorithmique</label>
+                      <input
+                        id="category"
+                        required
+                        value={draft.category || "Boucles & Accumulateurs"}
+                        onChange={(e) => update("category", e.target.value)}
+                        placeholder="Ex : Boucles, Recherche, Tableaux..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="subject">Nom de l'algorithme ou notion</label>
+                    <input
+                      id="subject"
+                      required
+                      value={draft.subject}
+                      onChange={(e) => update("subject", e.target.value)}
+                      placeholder="Ex : Moyenne d'une liste, Recherche dichotomique..."
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="exercise">Énoncé du problème</label>
+                    <p className="field-hint">
+                      Décris ce que l'algorithme doit calculer et les conditions requises.
+                    </p>
+                    <textarea
+                      id="exercise"
+                      required
+                      rows={4}
+                      value={draft.exercise}
+                      onChange={(e) => update("exercise", e.target.value)}
+                      placeholder="Ex : Écrire une fonction qui calcule la moyenne d'une liste non vide..."
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="signature">Signature de fonction attendue</label>
+                    <input
+                      id="signature"
+                      className="font-mono"
+                      value={draft.functionSignature || ""}
+                      onChange={(e) => update("functionSignature", e.target.value)}
+                      placeholder="Ex: def moyenne(nombres: list[float]) -> float:"
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label htmlFor="testCases">Jeux de tests d'exemple (Entrées / Sorties)</label>
+                    <input
+                      id="testCases"
+                      className="font-mono"
+                      value={draft.testCases || ""}
+                      onChange={(e) => update("testCases", e.target.value)}
+                      placeholder="Ex: moyenne([10, 20]) == 15.0"
+                    />
+                  </div>
+
+                  <fieldset className="field">
+                    <legend>Objectif de réflexion</legend>
+                    <div className="goal-options">
+                      {[
+                        "Comprendre la logique algorithmique",
+                        "Écrire le code pas à pas",
+                        "Optimiser la complexité",
+                      ].map((goal) => (
                         <label
                           className={`goal-option ${draft.goal === goal ? "selected" : ""}`}
                           key={goal}
@@ -640,22 +1018,22 @@ export default function App() {
                           />
                           <span>{goal}</span>
                         </label>
-                      ),
-                    )}
-                  </div>
-                </fieldset>
+                      ))}
+                    </div>
+                  </fieldset>
 
-                <div className="form-bottom">
-                  <span>Tu pourras revenir adapter ces éléments à tout moment.</span>
-                  <Button type="submit">
-                    Commencer à réfléchir <Icon name="arrow" size={17} />
-                  </Button>
-                </div>
-              </form>
+                  <div className="form-bottom">
+                    <span>Tu pourras adapter ces critères au cours de ta réflexion.</span>
+                    <Button type="submit">
+                      Commencer à réfléchir <Icon name="arrow" size={17} />
+                    </Button>
+                  </div>
+                </form>
+              </div>
             </section>
           )}
 
-          {/* STEP 2: Raisonnement (Dialogue interactif façon ChatGPT) */}
+          {/* STEP 2: Raisonnement algorithmique (Dialogue interactif façon ChatGPT) */}
           {page === "work" && (
             <section className="work-layout" aria-label="Étape 2 : Raisonnement">
               <Notebook
@@ -672,81 +1050,83 @@ export default function App() {
             </section>
           )}
 
-          {/* STEP 3: Bilan */}
+          {/* STEP 3: Bilan, Code Propre & Complexité */}
           {page === "summary" && (
-            <section className="summary-layout" aria-label="Étape 3 : Bilan">
+            <section className="summary-layout" aria-label="Étape 3 : Bilan & Complexité">
               <div className="summary-heading">
                 <span className="section-icon">
                   <Icon name="leaf" size={28} />
                 </span>
                 <h1 ref={titleRef} tabIndex={-1}>
-                  Bilan de ta séance
+                  Bilan & Complexité de l'algorithme
                 </h1>
-                <p>Prends un moment pour ancrer ce que tu as appris et reformuler ta démarche.</p>
+                <p>
+                  Prends un moment pour ancrer le patron algorithmique découvert et formaliser le code
+                  propre.
+                </p>
               </div>
 
+              {/* 3 Synthesis Cards */}
               <div className="summary-cards">
                 <div className="summary-card">
-                  <Icon name="book" size={22} />
-                  <span className="mini-label">NOTION TRAVAILLÉE</span>
-                  <h3>{draft.subject}</h3>
-                  <p>Calcul et interprétation d’une moyenne</p>
+                  <Icon name="code" size={22} />
+                  <span className="mini-label">PATRON ALGORITHMIQUE</span>
+                  <h3>{draft.solutionPattern || "Accumulateur itératif"}</h3>
+                  <p>Structure générale de parcours et de traitement des données.</p>
                 </div>
 
                 <div className="summary-card">
                   <Icon name="bulb" size={22} />
-                  <span className="mini-label">DÉCLIC CLÉ</span>
-                  <h3>Distinguer somme et moyenne</h3>
+                  <span className="mini-label">INVARIANTS & CAS LIMITES</span>
+                  <h3>Sécurisation validée</h3>
                   <p>
-                    {draft.sent > 0
-                      ? "La moyenne s'obtient en divisant la somme totale par le nombre d’éléments."
-                      : "Une distinction essentielle à mémoriser pour ce type d'exercice."}
+                    Vérification des listes vides, gestion des indices et conditions d’arrêt
+                    respectées.
                   </p>
                 </div>
 
                 <div className="summary-card">
-                  <Icon name="message" size={22} />
-                  <span className="mini-label">AIDES MOBILISÉES</span>
-                  <h3>
-                    {draft.helps.length
-                      ? draft.helps
-                          .map((h) =>
-                            h === "Un indice"
-                              ? "Indice"
-                              : h === "Un exemple"
-                                ? "Exemple"
-                                : h === "Expliquer la notion"
-                                  ? "Explication"
-                                  : h,
-                          )
-                          .join(", ")
-                      : "Raisonnement autonome"}
-                  </h3>
-                  <p>
-                    {draft.helps.length
-                      ? "Ressources consultées au fil des échanges."
-                      : "Tu as résolu cet exercice de façon entièrement autonome !"}
-                  </p>
+                  <Icon name="clock" size={22} />
+                  <span className="mini-label">COMPLEXITÉ ÉVALUÉE</span>
+                  <h3>{draft.expectedComplexity || "Temps O(n) | Mémoire O(1)"}</h3>
+                  <p>Efficacité optimale pour un parcours séquentiel des éléments.</p>
                 </div>
               </div>
 
+              {/* Code Snippet Solution Display */}
+              <div className="final-code-card">
+                <div className="final-code-header">
+                  <div className="final-code-title">
+                    <Icon name="code" size={16} />
+                    <span>Implémentation propre ({draft.language || "Python"})</span>
+                  </div>
+                  <span className="final-code-badge">Validé</span>
+                </div>
+                <pre className="final-code-pre">
+                  <code>{draft.finalCode || defaultTemplate.initialCodeSnippet}</code>
+                </pre>
+              </div>
+
+              {/* Personal Reflection Box */}
               <div className="panel reflection-panel">
                 <label htmlFor="reflection">
-                  Comment expliquerais-tu la méthode avec tes propres mots ?
+                  Comment expliquerais-tu cet algorithme à un camarade de promotion ?
                 </label>
                 <p>
-                  Ce qui est plus clair, la formule ou la démarche à retenir… cet espace t'appartient.
+                  Décris les variables utilisées, le rôle de la boucle et la formule finale avec tes
+                  propres mots.
                 </p>
                 <textarea
                   id="reflection"
                   rows={4}
                   value={draft.reflection}
                   onChange={(e) => update("reflection", e.target.value)}
-                  placeholder="Pour calculer une moyenne, je commence par additionner toutes les valeurs, puis je divise ce total par le nombre d'éléments..."
+                  placeholder="Pour résoudre ce problème, on initialise un accumulateur total à zéro, puis on parcourt chaque élément avec une boucle for. Enfin, on divise la somme par la longueur len(nombres)..."
                 />
                 <div className="reflection-note">
                   <Icon name="leaf" size={17} />
-                  Une séance est une étape vers la maîtrise. Tu peux approfondir cette notion quand tu le souhaites.
+                  Cet algorithme fait désormais partie de ta boîte à outils de développeur. Tu peux le
+                  retrouver dans « Mes séances ».
                 </div>
               </div>
 
@@ -759,9 +1139,9 @@ export default function App() {
                   <Icon name="back" size={16} />
                   Revenir au raisonnement
                 </button>
-                <Button onClick={newSession}>
+                <Button onClick={() => newSession()}>
                   <Icon name="plus" size={17} />
-                  Nouvelle séance
+                  Nouvel algorithme
                 </Button>
               </div>
             </section>
@@ -769,7 +1149,7 @@ export default function App() {
 
           <div className="session-footnote">
             <Icon name="leaf" size={15} />
-            Le bon rythme, c’est le tien.
+            Le bon rythme en algorithmique, c’est le tien.
           </div>
         </main>
       )}

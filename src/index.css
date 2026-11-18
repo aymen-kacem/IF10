@@ -1,8 +1,9 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Inter:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
 }
 @layer base {
   body {
@@ -12,6 +13,9 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+  }
+  code, pre, kbd, samp, .font-mono {
+    font-family: "JetBrains Mono", "Fira Code", monospace;
   }
   button,
   a,
@@ -120,6 +124,18 @@
   border: none;
   cursor: pointer;
   padding: 0;
+}
+.header-badge-tag {
+  font-size: 11.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #eaf3e8;
+  color: #245137;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #d5e5d3;
+  margin-left: 6px;
 }
 .header nav {
   display: flex;
@@ -2869,6 +2885,471 @@
     min-width: 150px;
   }
 }
+/* ==========================================================================
+   ALGORITHMIC FEATURES & ADVANCED DESIGN STYLES
+   ========================================================================== */
+
+/* Classic Starter Algorithms Grid on Home */
+.starter-algorithms-section {
+  margin: 48px 0;
+  padding: 36px;
+  background: #ffffff;
+  border: 1px solid #e1e9df;
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(24, 44, 32, 0.03);
+}
+
+.section-heading-clean {
+  margin-bottom: 26px;
+}
+
+.section-heading-clean h2 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #17261d;
+  letter-spacing: -0.6px;
+  margin: 4px 0 6px 0;
+}
+
+.section-heading-clean p {
+  font-size: 15.5px;
+  color: #556c5d;
+  margin: 0;
+}
+
+.starter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.starter-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px 22px;
+  background: #fbfdfa;
+  border: 1px solid #e2ebd0;
+  border-radius: 14px;
+  transition: all 0.2s ease;
+}
+
+.starter-card:hover {
+  transform: translateY(-2px);
+  border-color: #bad3be;
+  box-shadow: 0 6px 20px rgba(37, 77, 54, 0.08);
+  background: #ffffff;
+}
+
+.starter-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.starter-card-tag {
+  font-size: 12px;
+  font-weight: 650;
+  background: #eaf3e9;
+  color: #245137;
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+
+.starter-card-lang {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #4b6655;
+  background: #ffffff;
+  border: 1px solid #dbe6d9;
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+
+.starter-card h3 {
+  font-size: 17.5px;
+  font-weight: 700;
+  color: #17261d;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.3px;
+}
+
+.starter-card p {
+  font-size: 14px;
+  color: #4a6352;
+  line-height: 1.55;
+  margin: 0 0 18px 0;
+  flex: 1;
+}
+
+.starter-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px dashed #e1e9dd;
+  padding-top: 12px;
+}
+
+.starter-complexity {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 12px;
+  color: #2c593d;
+  background: #eef6ec;
+  padding: 3px 7px;
+  border-radius: 5px;
+  font-weight: 550;
+}
+
+.starter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 650;
+  color: #244d36;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  transition: all 0.18s ease;
+}
+
+.starter-btn:hover {
+  color: #173824;
+  transform: translateX(2px);
+}
+
+/* Dashboard "Mes séances" */
+.sessions-main {
+  max-width: 1080px;
+  margin: auto;
+  padding: 36px 32px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin: 28px 0 32px 0;
+}
+
+.stat-card {
+  background: #ffffff;
+  border: 1px solid #dce6da;
+  border-radius: 14px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+.stat-number {
+  font-size: 32px;
+  font-weight: 800;
+  color: #244d36;
+  letter-spacing: -1px;
+  line-height: 1.1;
+}
+
+.stat-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #556c5d;
+  margin-top: 6px;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding: 12px 18px;
+  background: #ffffff;
+  border: 1px solid #e1e8dd;
+  border-radius: 12px;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-title {
+  font-size: 14px;
+  font-weight: 650;
+  color: #4b6453;
+  margin-right: 4px;
+}
+
+.filter-pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #556c5d;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.filter-pill:hover {
+  background: #f1f6ef;
+  color: #244d36;
+}
+
+.filter-pill.active {
+  background: #254d36;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 77, 54, 0.2);
+}
+
+.session-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  margin-bottom: 36px;
+}
+
+.session-card-item {
+  background: #ffffff;
+  border: 1px solid #dbe6da;
+  border-radius: 14px;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.session-card-item:hover {
+  transform: translateY(-2px);
+  border-color: #bad3be;
+  box-shadow: 0 8px 24px rgba(34, 75, 52, 0.08);
+}
+
+.session-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.session-card-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.lang-tag {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: #244d36;
+  color: #ffffff;
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+
+.cat-tag {
+  font-size: 11.5px;
+  font-weight: 600;
+  background: #eaf3e9;
+  color: #245137;
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+
+.session-card-date {
+  font-size: 12.5px;
+  color: #798f80;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.session-card-item h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #17261d;
+  margin: 0 0 8px 0;
+}
+
+.session-card-desc {
+  font-size: 14px;
+  color: #4b6655;
+  line-height: 1.55;
+  margin: 0 0 16px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.session-card-complexity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 12.5px;
+  color: #556c5d;
+}
+
+.session-card-complexity code {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 12px;
+  color: #245137;
+  background: #eef6ec;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.session-card-footer {
+  border-top: 1px solid #edf2eb;
+  padding-top: 14px;
+}
+
+.session-card-footer .button {
+  width: 100%;
+}
+
+/* Step 1 Template Chooser & Grid */
+.problem-form-wrapper {
+  padding: 28px 32px;
+}
+
+.template-quick-chooser {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e3ebe0;
+}
+
+.chooser-label {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 650;
+  color: #425e4c;
+  margin-bottom: 10px;
+}
+
+.template-buttons-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.template-choice-btn {
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 20px;
+  background: #f1f6ef;
+  border: 1px solid #d4e4d2;
+  color: #244d36;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.template-choice-btn:hover {
+  background: #e2f0e0;
+  border-color: #b7d6b4;
+}
+
+.template-choice-btn.selected {
+  background: #254d36;
+  color: #ffffff;
+  border-color: #254d36;
+  box-shadow: 0 2px 8px rgba(37, 77, 54, 0.25);
+}
+
+.field-row-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.field select {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #d9ded6;
+  border-radius: 7px;
+  padding: 13px 15px;
+  color: #2c3934;
+  font-size: 15.5px;
+  cursor: pointer;
+}
+
+/* Step 3 Final Code Display Box */
+.final-code-card {
+  background: #19251f;
+  border: 1px solid #283a30;
+  border-radius: 14px;
+  overflow: hidden;
+  margin: 28px 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.final-code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #131d18;
+  border-bottom: 1px solid #24352b;
+}
+
+.final-code-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #9cb8a7;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.final-code-badge {
+  font-size: 12px;
+  font-weight: 700;
+  background: #245137;
+  color: #95ecc0;
+  padding: 3px 9px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.final-code-pre {
+  margin: 0;
+  padding: 20px 22px;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #d6f2de;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+@media (max-width: 768px) {
+  .field-row-two {
+    grid-template-columns: 1fr;
+  }
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .starter-algorithms-section {
+    padding: 20px 16px;
+  }
+  .sessions-main {
+    padding: 24px 18px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
